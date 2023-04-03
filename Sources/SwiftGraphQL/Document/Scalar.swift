@@ -130,6 +130,8 @@ extension Bool: GraphQLScalar {
 extension Double: GraphQLScalar {
     public init(from codable: AnyCodable) throws {
         switch(codable.value) {
+        case let value as Int:
+            self = Double(value)
         case let value as Float:
             self = Double(value)
         case let value as Double:
