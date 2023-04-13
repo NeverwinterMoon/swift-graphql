@@ -4,7 +4,7 @@ import XCTest
 
 /// Tests that test how we decode selection.
 final class SelectionDecodingTests: XCTestCase {
-    
+
     func testRegular() throws {
         let result: ExecutionResult = """
             {
@@ -20,7 +20,7 @@ final class SelectionDecodingTests: XCTestCase {
                 return "wrong"
             }
         }
-        
+
         let decoded = try selection.decode(raw: result.data)
         XCTAssertEqual(decoded, "Hello World!")
         XCTAssertEqual(result.errors, nil)
@@ -41,7 +41,7 @@ final class SelectionDecodingTests: XCTestCase {
                 return "wrong"
             }
         }
-        
+
         let decoded = try selection.decode(raw: result.data)
         XCTAssertEqual(decoded, nil)
         XCTAssertEqual(result.errors, nil)
@@ -70,13 +70,13 @@ final class SelectionDecodingTests: XCTestCase {
     }
 
     func testList() throws {
-        
+
         let result: ExecutionResult = """
             {
               "data": [1, 2, 3]
             }
             """.execution()
-        
+
         let selection = Selection<Int, Int> {
             switch $0.__state {
             case let .decoding(data):
@@ -90,14 +90,58 @@ final class SelectionDecodingTests: XCTestCase {
         XCTAssertEqual(decoded, [1, 2, 3])
         XCTAssertEqual(result.errors, nil)
     }
-    
+
+    func testArray_IntScalar() throws {
+
+        let result: ExecutionResult = """
+                                      {
+                                        "data": [1, 2, 3]
+                                      }
+                                      """.execution()
+
+        let selection = Selection<[Int], [Int]> {
+            switch $0.__state {
+                case let .decoding(data):
+                    return try [Int](from: data)
+                case .selecting:
+                    return []
+            }
+        }
+
+        let decoded = try selection.decode(raw: result.data)
+        XCTAssertEqual(decoded, [1, 2, 3])
+        XCTAssertEqual(result.errors, nil)
+    }
+
+    func testArray_StringScalar() throws {
+
+        let result: ExecutionResult = """
+                                      {
+                                        "data": ["1", "2", "3"]
+                                      }
+                                      """.execution()
+
+        let selection = Selection<[String], [String]> {
+            switch $0.__state {
+                case let .decoding(data):
+                    return try [String](from: data)
+                case .selecting:
+                    return []
+            }
+        }
+
+        let decoded = try selection.decode(raw: result.data)
+        XCTAssertEqual(decoded, ["1", "2", "3"])
+        XCTAssertEqual(result.errors, nil)
+    }
+
     func testNonNullableOrError() throws {
         let result: ExecutionResult = """
             {
               "data": null
             }
             """.execution()
-        
+
         let selection = Selection<String, String> {
             switch $0.__state {
             case let .decoding(data):
@@ -113,7 +157,7 @@ final class SelectionDecodingTests: XCTestCase {
                 XCTAssertEqual(expected, "String")
             default:
                 XCTFail()
-            } 
+            }
         }
     }
 
@@ -123,7 +167,7 @@ final class SelectionDecodingTests: XCTestCase {
               "data": null
             }
             """.execution()
-        
+
         let selection = Selection<String, String?> {
             switch $0.__state {
             case .decoding:
@@ -137,7 +181,7 @@ final class SelectionDecodingTests: XCTestCase {
             XCTAssertEqual(error as? CustomError, CustomError.null)
         }
     }
-    
+
     enum CustomError: Error {
         case null
     }
@@ -150,7 +194,7 @@ final class SelectionDecodingTests: XCTestCase {
           "data": "right"
         }
         """.execution()
-        
+
         let selection = Selection<String, String> {
             switch $0.__state {
             case let .decoding(data):
@@ -164,7 +208,7 @@ final class SelectionDecodingTests: XCTestCase {
         XCTAssertEqual(decoded, true)
         XCTAssertEqual(result.errors, nil)
     }
-    
+
     // MARK: - Errors
 
     func testResponseWithErrors() throws {
@@ -180,7 +224,7 @@ final class SelectionDecodingTests: XCTestCase {
               "data": "data"
             }
             """.execution()
-        
+
         let selection = Selection<String, String> {
             switch $0.__state {
             case let .decoding(data):
@@ -203,7 +247,6 @@ final class SelectionDecodingTests: XCTestCase {
 }
 
 extension String {
-    
     /// Converts a string representation of a GraphQL result into the execution result that may be used to
     /// test selection result..
     fileprivate func execution() -> ExecutionResult {
